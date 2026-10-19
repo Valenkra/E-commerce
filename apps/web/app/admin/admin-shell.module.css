@@ -1,0 +1,41 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;450;500;550;600;650;700&display=swap");
+.shell { --sidebar-width: 190px; min-height: 100vh; background: #f4f7fb; color: #20314a; }
+.sidebar { position: fixed; inset: 0 auto 0 0; z-index: 30; display: flex; flex-direction: column; width: var(--sidebar-width); box-sizing: border-box; padding: 26px 14px 16px; background: #173b75; color: #fff; box-shadow: 3px 0 22px rgba(23,59,117,.10); }
+.brand { display: flex; align-items: center; gap: 12px; padding: 4px 12px 27px; color: #fff; text-decoration: none; }
+.brandIcon { display: grid; place-items: center; width: 42px; height: 42px; border-radius: 12px; background: #315c9a; flex-shrink: 0; }
+.brand strong { display: block; font-size: 17px; letter-spacing: .2px; }
+.brand small { display: block; font-size: 10px; letter-spacing: 1.6px; opacity: .65; margin-top: 3px; }
+.sectionTitle { padding: 10px 15px 13px; font-size: 10px; font-weight: 700; letter-spacing: 1.8px; color: #a9c1e4; }
+.navigation { display: flex; flex-direction: column; gap: 5px; }
+.navItem { display: flex; align-items: center; gap: 13px; width: 100%; min-height: 45px; box-sizing: border-box; border: 0; border-radius: 10px; padding: 10px 13px; background: transparent; color: #dce8fa; font: inherit; font-size: 14px; font-weight: 500; text-align: left; text-decoration: none; cursor: pointer; transition: background .16s, color .16s; }
+.navItem svg { flex-shrink: 0; }
+.navItem:hover, .navItem:focus-visible { background: #315c9a; color: #fff; outline-offset: 2px; }
+.active { background: #315c9a; color: #fff; font-weight: 700; box-shadow: inset 3px 0 #a6c9ff; }
+.sidebarFooter { margin-top: auto; border-top: 1px solid rgba(255,255,255,.18); padding-top: 14px; display: grid; gap: 5px; }
+.content { margin-left: var(--sidebar-width); min-height: 100vh; }
+.main { padding: 0 12px 48px; }
+/* Diseño desktop-first: la barra permanece abierta, sin hover ni colapso. */
+
+/* Sidebar desktop: contenido completo visible en alturas normales; scroll propio en pantallas bajas */
+.sidebar { height: 100dvh; min-height: 0; padding: clamp(10px, 2vh, 22px) 9px clamp(8px, 1.5vh, 14px); overflow: hidden; }
+.brand { padding: 2px 7px clamp(8px, 1.8vh, 20px); gap: 10px; }
+.brandIcon { width: 36px; height: 36px; border-radius: 9px; }
+.brand strong { font-size: 15px; }
+.sectionTitle { padding: clamp(4px, 1vh, 9px) 10px; font-size: 9px; letter-spacing: 1.3px; }
+.navigation { flex: 1 1 auto; min-height: 0; overflow-y: auto; gap: clamp(1px, .5vh, 4px); scrollbar-width: thin; scrollbar-color: #6385b3 transparent; }
+.navItem { min-height: 0; padding: clamp(6px, 1.1vh, 9px) 9px; gap: 10px; border-radius: 7px; font-size: 13px; font-weight: 450; }
+.navItem svg { width: 18px; height: 18px; }
+.active { font-weight: 600; box-shadow: inset 2px 0 #b7d1f3; }
+.sidebarFooter { flex-shrink: 0; margin-top: 8px; padding-top: clamp(6px, 1vh, 10px); gap: 1px; }
+.main { padding: 0 16px 40px; }
+@media (max-height: 660px) { .brand small, .sectionTitle { display: none; } .brand { padding-bottom: 8px; } .navItem { padding-top: 5px; padding-bottom: 5px; } .sidebarFooter { margin-top: 5px; padding-top: 5px; } }
+
+/* Tipografía unificada: CRM profesional */
+.shell { font-family: 'Inter', Arial, Helvetica, sans-serif; font-size: 13px; line-height: 1.5; font-weight: 400; -webkit-font-smoothing: antialiased; }
+.shell :global(button), .shell :global(input), .shell :global(textarea), .shell :global(select) { font-family: inherit; }
+.shell :global(h1) { font-family: inherit; font-size: 21px; font-weight: 600; letter-spacing: -.025em; }
+.shell :global(h2) { font-family: inherit; font-size: 16px; font-weight: 600; letter-spacing: -.015em; }
+.shell :global(h3) { font-family: inherit; font-weight: 600; }
+.brand strong { font-weight: 600; letter-spacing: -.02em; }
+.navItem { font-weight: 450; }
+.active { font-weight: 600; }

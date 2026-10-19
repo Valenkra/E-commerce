@@ -1,7 +1,7 @@
 'use client';
 
-import { useEffect, useRef, useState, type CSSProperties, type FormEvent } from 'react';
-import Link from 'next/link';
+import { useEffect, useRef, useState, type FormEvent } from 'react';
+import styles from './products.module.css';
 
 type Variant = { size: string; color: string; stock: number; sku: string | null };
 type Product = {
@@ -15,7 +15,6 @@ type FormState = {
   subcategory: string; brand: string; retail_price: string;
   wholesale_price: string; image_url: string; active: boolean;
 };
-const field: CSSProperties = { padding: 10, border: '1px solid #cbbfc4', borderRadius: 9, width: '100%', background: '#fff', color: '#33252b' };
 const initial: FormState = { code: '', name: '', description: '', category: 'Conjuntos', subcategory: '', brand: '', retail_price: '', wholesale_price: '', image_url: '', active: true };
 const emptyVariant = (): Variant => ({ size: '', color: '', stock: 0, sku: null });
 const labels: Record<Exclude<keyof FormState, 'description' | 'image_url' | 'active'>, string> = {
@@ -128,84 +127,87 @@ export default function ProductManager() {
     }
   }
 
-  async function logout() {
-    await fetch('/api/admin/logout', { method: 'POST' });
-    window.location.href = '/admin/login';
-  }
   const shown = products.filter(p => `${p.name} ${p.code}`.toLowerCase().includes(q.toLowerCase()));
 
-  return <main style={{ maxWidth: 1150, margin: '0 auto', padding: '32px 20px', color: '#33252b' }}>
-    <header style={{ display: 'flex', justifyContent: 'space-between', gap: 16, alignItems: 'center', flexWrap: 'wrap' }}>
-      <div><Link href="/catalogo">← Ver tienda</Link><h1 style={{ fontSize: 32, marginTop: 12 }}>Administrar productos</h1><p>Inventario y catálogo en PostgreSQL</p></div>
-      <button type="button" onClick={logout} style={{ ...field, width: 'auto' }}>Cerrar sesión</button>
+  return <main className={styles.products}>
+    <header className={styles.pageHeader}>
+      <div><h1>Productos</h1><p>Administrá el catálogo, los precios y la disponibilidad.</p></div>
+      <span className={styles.headerCount}>{products.length} productos registrados</span>
     </header>
-    <section ref={formRef} style={{ marginTop: 28, background: '#fff8fa', border: '1px solid #eadce1', borderRadius: 18, padding: 22 }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
-        <h2 style={{ fontSize: 22, marginBottom: 16 }}>{editingId ? `Editar producto: ${form.code}` : 'Nuevo producto'}</h2>
-        {editingId && <button type="button" disabled={busy} onClick={reset}>Cancelar edición</button>}
+
+    <section ref={formRef} className={styles.panel}>
+      <div className={styles.panelHeader}>
+        <div><h2>{editingId ? `Editar producto · ${form.code}` : 'Nuevo producto'}</h2><p>Información general y configuración del producto</p></div>
+        {editingId && <button className={styles.buttonSecondary} type="button" disabled={busy} onClick={reset}>Cancelar edición</button>}
       </div>
-      <form onSubmit={submit}>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(220px,1fr))', gap: 12 }}>
-          {(Object.keys(labels) as Array<keyof typeof labels>).map(k => <label key={k} style={{ display: 'grid', gap: 6 }}>
+      <form onSubmit={submit} className={styles.form}>
+        <div className={styles.formGrid}>
+          {(Object.keys(labels) as Array<keyof typeof labels>).map(k => <label key={k} className={styles.field}>
             <span>{labels[k]}</span>
-            <input style={field} required={['code', 'name', 'category', 'retail_price', 'wholesale_price'].includes(k)}
+            <input className={styles.input} required={['code', 'name', 'category', 'retail_price', 'wholesale_price'].includes(k)}
               type={k.includes('price') ? 'number' : 'text'} min={k.includes('price') ? 0 : undefined}
               step={k.includes('price') ? '0.01' : undefined} value={form[k]}
               onChange={e => setForm(p => ({ ...p, [k]: e.target.value }))} />
           </label>)}
         </div>
-        <label style={{ display: 'grid', gap: 6, marginTop: 12 }}>Descripción
-          <textarea style={field} value={form.description} onChange={e => setForm(p => ({ ...p, description: e.target.value }))} />
+        <label className={styles.field}><span>Descripción</span>
+          <textarea className={styles.textarea} rows={3} value={form.description} onChange={e => setForm(p => ({ ...p, description: e.target.value }))} />
         </label>
-        <label style={{ display: 'grid', gap: 6, marginTop: 12 }}>URL de imagen (opcional)
-          <input style={field} value={form.image_url} onChange={e => setForm(p => ({ ...p, image_url: e.target.value }))} />
+        <label className={styles.field}><span>URL de imagen <span className={styles.optional}>(opcional)</span></span>
+          <input className={styles.input} type="url" placeholder="https://..." value={form.image_url} onChange={e => setForm(p => ({ ...p, image_url: e.target.value }))} />
         </label>
-        <label style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 14 }}>
+        <label className={styles.checkRow}>
           <input type="checkbox" checked={form.active} onChange={e => setForm(p => ({ ...p, active: e.target.checked }))} />
-          Producto activo (visible en el catálogo)
+          <span>Producto activo <small>Visible en el catálogo de la tienda</small></span>
         </label>
-        <h3 style={{ margin: '20px 0 10px' }}>Variantes (talle, color y stock)</h3>
-        <p style={{ fontSize: 13, marginBottom: 12 }}>Si quitás una variante existente al editar, se conservará en la base de datos con stock 0.</p>
-        {variants.map((v, i) => <div key={i} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(120px,1fr))', gap: 10, marginBottom: 10 }}>
-          {(Object.keys(variantLabels) as Array<keyof Variant>).map(k => <label key={k} style={{ display: 'grid', gap: 4 }}>
-            <span>{variantLabels[k]}</span>
-            <input style={field} type={k === 'stock' ? 'number' : 'text'} min={k === 'stock' ? 0 : undefined}
-              required={k === 'size' || k === 'color'} value={v[k] ?? ''}
-              onChange={e => setVariants(p => p.map((x, j) => j === i ? { ...x, [k]: k === 'stock' ? Number(e.target.value) : e.target.value } : x))} />
-          </label>)}
-          <button type="button" disabled={busy} onClick={() => setVariants(p => p.filter((_, j) => j !== i))}>Quitar variante</button>
-        </div>)}
-        <button type="button" disabled={busy} onClick={() => setVariants(p => [...p, emptyVariant()])}>+ Agregar variante</button>
-        <div style={{ marginTop: 20 }}>
-          <button disabled={busy} type="submit" style={{ background: '#632e42', color: 'white', borderRadius: 10, padding: '12px 22px' }}>
+
+        <div className={styles.subsectionHeader}><h3>Variantes y stock</h3><p>Combinaciones de talle, color y disponibilidad</p></div>
+        <p className={styles.hint}>Al quitar una variante existente durante la edición, se conserva en la base de datos con stock 0.</p>
+        <div className={styles.variantList}>
+          {variants.map((v, i) => <div key={i} className={styles.variantCard}>
+            <div className={styles.variantHeading}><span>Variante {i + 1}</span><button className={styles.buttonTextDanger} type="button" disabled={busy} onClick={() => setVariants(p => p.filter((_, j) => j !== i))}>Quitar variante</button></div>
+            <div className={styles.variantGrid}>
+              {(Object.keys(variantLabels) as Array<keyof Variant>).map(k => <label key={k} className={styles.field}>
+                <span>{variantLabels[k]}</span>
+                <input className={styles.input} type={k === 'stock' ? 'number' : 'text'} min={k === 'stock' ? 0 : undefined}
+                  required={k === 'size' || k === 'color'} value={v[k] ?? ''}
+                  onChange={e => setVariants(p => p.map((x, j) => j === i ? { ...x, [k]: k === 'stock' ? Number(e.target.value) : e.target.value } : x))} />
+              </label>)}
+            </div>
+          </div>)}
+        </div>
+        <button className={styles.buttonSecondary} type="button" disabled={busy} onClick={() => setVariants(p => [...p, emptyVariant()])}>+ Agregar variante</button>
+        <div className={styles.formActions}>
+          <button className={styles.buttonPrimary} disabled={busy} type="submit">
             {busy ? 'Guardando…' : editingId ? 'Guardar cambios' : 'Guardar producto'}
           </button>
         </div>
       </form>
     </section>
-    {error && <p role="alert" style={{ color: '#a12626', marginTop: 12 }}>{error}</p>}
-    {success && <p role="status" style={{ color: '#276b45', marginTop: 12 }}>{success}</p>}
-    <section style={{ marginTop: 32 }}>
-      <h2 style={{ fontSize: 22 }}>Productos cargados ({products.length})</h2>
-      <input style={{ ...field, maxWidth: 420, margin: '12px 0' }} placeholder="Buscar nombre o código" value={q} onChange={e => setQ(e.target.value)} />
-      <div style={{ overflowX: 'auto' }}><table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-        <thead><tr>{['Código', 'Nombre', 'Categoría', 'Minorista', 'Mayorista', 'Stock', 'Estado', 'Acción'].map(h => <th key={h} style={{ padding: 12, borderBottom: '1px solid #ddd' }}>{h}</th>)}</tr></thead>
+
+    {error && <p role="alert" className={styles.alertError}>{error}</p>}
+    {success && <p role="status" className={styles.alertSuccess}>{success}</p>}
+
+    <section className={styles.panel}>
+      <div className={styles.panelHeader}>
+        <div><h2>Productos cargados <span className={styles.countBadge}>{products.length}</span></h2><p>Consultá y administrá los productos existentes</p></div>
+        <input className={`${styles.input} ${styles.searchInput}`} aria-label="Buscar productos" placeholder="Buscar por nombre o código" value={q} onChange={e => setQ(e.target.value)} />
+      </div>
+      <div className={styles.tableScroll}><table className={styles.table}>
+        <thead><tr>{['Código', 'Nombre', 'Categoría', 'Minorista', 'Mayorista', 'Stock', 'Estado', 'Acciones'].map(h => <th key={h}>{h}</th>)}</tr></thead>
         <tbody>{shown.map(p => <tr key={p.id}>
-          <td style={{ padding: 12 }}>{p.code}</td><td style={{ padding: 12 }}>{p.name}</td><td style={{ padding: 12 }}>{p.category}</td>
-          <td style={{ padding: 12 }}>${Number(p.retail_price).toLocaleString('es-AR')}</td>
-          <td style={{ padding: 12 }}>${Number(p.wholesale_price).toLocaleString('es-AR')}</td>
-          <td style={{ padding: 12 }}>{p.variants.reduce((s, v) => s + v.stock, 0)}</td>
-          <td style={{ padding: 12 }}>{p.active ? 'Activo' : 'Inactivo'}</td>
-          <td style={{ padding: 12 }}>
-            <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-              <button type="button" disabled={busy} onClick={() => edit(p)}>Editar</button>
-              {p.active && <button type="button" disabled={busy} onClick={() => void removeProduct(p)}
-                style={{ color: '#a12626', border: '1px solid #a12626', padding: '6px 10px', borderRadius: 8, background: '#fff' }}>
-                Eliminar
-              </button>}
-            </div>
-          </td>
-        </tr>)}</tbody>
+          <td className={styles.codeCell}>{p.code}</td><td className={styles.nameCell}>{p.name}</td><td>{p.category}</td>
+          <td className={styles.numberCell}>${Number(p.retail_price).toLocaleString('es-AR')}</td>
+          <td className={styles.numberCell}>${Number(p.wholesale_price).toLocaleString('es-AR')}</td>
+          <td className={styles.numberCell}>{p.variants.reduce((s, v) => s + v.stock, 0)}</td>
+          <td><span className={p.active ? styles.statusActive : styles.statusInactive}>{p.active ? 'Activo' : 'Inactivo'}</span></td>
+          <td><div className={styles.rowActions}>
+            <button className={styles.buttonTable} type="button" disabled={busy} onClick={() => edit(p)}>Editar</button>
+            {p.active && <button className={styles.buttonTableDanger} type="button" disabled={busy} onClick={() => void removeProduct(p)}>Eliminar</button>}
+          </div></td>
+        </tr>)}
+        {shown.length === 0 && <tr><td colSpan={8} className={styles.emptyState}>No se encontraron productos.</td></tr>}
+        </tbody>
       </table></div>
     </section>
   </main>;
