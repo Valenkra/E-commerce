@@ -1,0 +1,39 @@
+/* 404 compacta, celeste y adaptable a pantallas bajas */
+.page{box-sizing:border-box;position:relative;isolation:isolate;display:grid;place-items:center;min-height:100svh;min-height:100dvh;overflow:hidden;padding:clamp(12px,3vh,28px) 18px;background:linear-gradient(155deg,#f7fcff 0%,#eaf7ff 60%,#d8efff 100%);color:#183f60;text-align:center}
+.glow{position:absolute;z-index:-1;top:-140px;right:-120px;width:380px;height:380px;border-radius:50%;background:radial-gradient(circle,#bce8ff 0%,transparent 72%);opacity:.65;pointer-events:none}
+.card{width:min(100%,420px);display:flex;flex-direction:column;align-items:center;gap:clamp(8px,1.7vh,14px)}
+.illustration{width:min(100%,clamp(150px,29vh,245px));margin:0 auto}
+.illustration svg{display:block;width:100%;height:auto;overflow:visible}
+.bag{transform-origin:210px 275px;animation:float 4s ease-in-out infinite}
+.tag{transform-origin:278px 133px;animation:tagSwing 4s ease-in-out infinite}
+.card h1{max-width:390px;font-size:clamp(21px,3.7vw,29px);line-height:1.18;letter-spacing:-.035em;font-weight:750;margin:0}
+.card p{max-width:340px;color:#557e9d;font-size:clamp(12px,2vw,14px);line-height:1.4;margin:0}
+.button{display:inline-flex;align-items:center;justify-content:center;gap:12px;min-height:42px;padding:10px 20px;border-radius:999px;background:#2689c4;color:#fff;text-decoration:none;font-size:13px;font-weight:700;box-shadow:0 6px 16px #2689c42c;transition:transform .2s,background .2s}
+.button:hover{background:#176d9f;transform:translateY(-2px)}
+.button:focus-visible{outline:3px solid #176d9f;outline-offset:4px}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+@keyframes tagSwing{0%,100%{transform:rotate(0)}50%{transform:rotate(-4deg)}}
+@media(max-width:600px){.page{padding:14px 16px}.card{gap:10px}.illustration{width:min(100%,clamp(145px,28vh,220px))}.card h1{font-size:clamp(20px,5.3vw,25px)}.card p{font-size:12px}.button{min-height:40px}}
+@media(max-height:570px){.page{padding:8px 14px}.card{gap:6px}.illustration{width:min(100%,clamp(110px,25vh,165px))}.card h1{font-size:20px}.card p{font-size:12px}.button{min-height:36px;padding:7px 16px}}
+@media(prefers-reduced-motion:reduce){.bag,.tag{animation:none}.button{transition:none}}
+/* Volver a la tienda: enlace minimalista */
+.backButton {
+  display: inline-block;
+  width: auto;
+  padding: 0;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+
+  color: #2689c4;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+  text-decoration-thickness: 1px;
+}
+
+.backButton:hover {
+  background: transparent;
+  color: #176a9e;
+}
