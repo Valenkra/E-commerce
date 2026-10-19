@@ -11,7 +11,6 @@ const sections = [
   { href: '/admin/inventario', label: 'Inventario', icon: 'inventory' },
   { href: '/admin/pedidos', label: 'Pedidos', icon: 'orders' },
   { href: '/admin/clientes', label: 'Clientes', icon: 'clients' },
-  { href: '/admin/imagenes', label: 'Imágenes', icon: 'images' },
   { href: '/admin/reportes', label: 'Reportes', icon: 'reports' },
   { href: '/admin/configuracion', label: 'Configuración', icon: 'settings' },
 ] as const;

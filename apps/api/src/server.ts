@@ -1,5 +1,6 @@
 import { registerOrdersRoutes } from './orders-routes';
 import { registerCustomersRoutes } from './customers-routes';
+import { registerSettingsRoutes } from './settings-routes';
 import 'dotenv/config';
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
@@ -446,6 +447,7 @@ app.delete('/api/admin/products/:id', {
     if (process.env.WHATSAPP_VERIFY_TOKEN && q['hub.mode'] === 'subscribe' && q['hub.verify_token'] === process.env.WHATSAPP_VERIFY_TOKEN) return reply.type('text/plain').send(q['hub.challenge']);
     return reply.code(403).send('Forbidden');
   });
+  registerSettingsRoutes(app, pool, requireAdmin);
   await app.listen({ port: Number(process.env.PORT || 4000), host: '0.0.0.0' });
 }
 start().catch(err => { app.log.error(err); process.exit(1); });
