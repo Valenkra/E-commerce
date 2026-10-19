@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import type { ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import styles from './admin-shell.module.css';
 
 const sections = [
@@ -35,6 +35,13 @@ function Icon({ name }: { name: IconName }) {
 export default function AdminShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
+  const [mobileOpen, setMobileOpen] = useState(false);
+  useEffect(() => { setMobileOpen(false); }, [pathname]);
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => { if (event.key === 'Escape') setMobileOpen(false); };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, []);
   // El login no debe mostrar la navegación administrativa.
   if (pathname === '/admin/login' || pathname.startsWith('/admin/login/')) return <>{children}</>;
   async function logout() {
@@ -42,20 +49,22 @@ export default function AdminShell({ children }: { children: ReactNode }) {
     finally { router.replace('/admin/login'); router.refresh(); }
   }
   return <div className={styles.shell}>
-    <aside className={styles.sidebar} aria-label="Menú de administración">
-      <Link href="/admin/dashboard" className={styles.brand}><span className={styles.brandIcon}><Icon name="store" /></span><span><strong>ValenShop</strong><small>ADMINISTRACIÓN</small></span></Link>
+    {mobileOpen && <button type="button" className={styles.mobileBackdrop} aria-label="Cerrar menú" onClick={() => setMobileOpen(false)} />}
+    <aside className={`${styles.sidebar} ${mobileOpen ? styles.mobileExpanded : ''}`} aria-label="Menú de administración">
+      <button type="button" className={styles.mobileToggle} aria-label={mobileOpen ? 'Contraer menú' : 'Expandir menú'} aria-expanded={mobileOpen} onClick={() => setMobileOpen(value => !value)}><span aria-hidden="true">{mobileOpen ? '×' : '☰'}</span></button>
+      <Link href="/admin/dashboard" className={styles.brand} title="Dashboard"><span className={styles.brandIcon}><Icon name="store" /></span><span><strong>ValenShop</strong><small>ADMINISTRACIÓN</small></span></Link>
       <div className={styles.sectionTitle}>GESTIÓN</div>
       <nav className={styles.navigation} aria-label="Secciones">
         {sections.map(section => {
           const active = pathname === section.href || pathname.startsWith(section.href + '/');
-          return <Link key={section.href} href={section.href} className={`${styles.navItem} ${active ? styles.active : ''}`} aria-current={active ? 'page' : undefined}>
+          return <Link key={section.href} href={section.href} className={`${styles.navItem} ${active ? styles.active : ''}`} title={section.label} aria-current={active ? 'page' : undefined}>
             <Icon name={section.icon}/><span>{section.label}</span>
           </Link>;
         })}
       </nav>
       <div className={styles.sidebarFooter}>
-        <Link className={styles.navItem} href="/catalogo"><Icon name="store"/><span>Ver tienda</span></Link>
-        <button className={styles.navItem} type="button" onClick={logout}><Icon name="logout"/><span>Cerrar sesión</span></button>
+        <Link className={styles.navItem} href="/catalogo" title="Ver tienda"><Icon name="store"/><span>Ver tienda</span></Link>
+        <button className={styles.navItem} type="button" title="Cerrar sesión" onClick={logout}><Icon name="logout"/><span>Cerrar sesión</span></button>
       </div>
     </aside>
     <div className={styles.content}><main className={styles.main}>{children}</main></div>
