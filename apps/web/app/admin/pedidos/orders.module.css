@@ -60,3 +60,50 @@
 .ticketTotal{display:flex;align-items:center;justify-content:space-between;gap:10px;border-top:2px solid #253f64;margin-top:8px;padding:18px 0 8px;color:#172b49}.ticketTotal span{font-size:14px;font-weight:700}.ticketTotal strong{font-size:22px;font-weight:800;letter-spacing:-.04em;font-variant-numeric:tabular-nums}
 .ticketNote,.ticketEmpty{font-size:12px;color:#718199;line-height:1.5;margin:3px 0 12px}
 @media(max-width:480px){.ticketTotal strong{font-size:19px}.ticketLine{gap:8px}}
+
+/* Pedidos: vista móvil compacta sin tablas horizontales */
+.mobileOrders{display:none}
+@media(max-width:700px){
+ .page{padding:14px 10px 90px;max-width:100%;min-width:0}
+ .header{gap:10px;margin-bottom:16px}
+ .header h1{font-size:24px;margin:2px 0 3px}
+ .header p:not(.eyebrow){font-size:12px;line-height:1.4}
+ .primaryLink{width:100%;min-height:44px}
+ .kpis{gap:8px;margin-bottom:12px}
+ .kpi{padding:11px 12px;border-radius:11px;gap:2px}
+ .kpi strong{font-size:22px}
+ .kpi span{font-size:11px}
+ .panel{padding:12px;border-radius:13px}
+ .sectionHeader{flex-direction:row;align-items:center;gap:8px;margin-bottom:12px}
+ .sectionHeader h2{font-size:15px;margin:0}
+ .sectionHeader button{padding:8px 10px;font-size:12px}
+ .filtersRow{gap:8px;margin-bottom:12px}
+ .filtersRow label{font-size:12px}
+ .filtersRow input,.filtersRow select{min-height:43px;font-size:16px}
+ .page:not(.orderRedesign) .tableScroll{display:none}
+ .mobileOrders{display:grid;gap:9px}
+ .page button.mobileOrderCard{display:grid;width:100%;gap:8px;text-align:left;background:#fff;color:#18304c;border:1px solid #dce5f0;border-radius:12px;padding:13px;min-width:0}
+ .mobileOrderTop,.mobileOrderBottom{display:flex;align-items:center;justify-content:space-between;gap:8px;min-width:0}
+ .mobileOrderTop strong{font-size:13px;overflow-wrap:anywhere}
+ .mobileOrderStatus{background:#edf3fa;color:#173b75;border-radius:99px;padding:4px 8px;font-size:10px;font-weight:650;white-space:nowrap}
+ .mobileOrderCustomer{font-size:13px;font-weight:600;overflow-wrap:anywhere}
+ .mobileOrderBottom{font-size:11px;color:#66778d}
+ .mobileOrderBottom span:last-child{color:#173b75;font-weight:700;white-space:nowrap}
+ .orderRedesign{padding:12px 9px 90px}
+ .orderRedesign .header{padding-bottom:12px;margin-bottom:12px}
+ .workbench{gap:12px}
+ .workMain{gap:12px}
+ .introStrip{padding:11px 12px;font-size:12px}
+ .introStrip p{font-size:11px}
+ .stepBlock{padding:13px;border-radius:13px}
+ .stepHeading{gap:9px;margin-bottom:12px}
+ .stepHeading h2{font-size:17px}
+ .stepHeading p{font-size:11px}
+ .stepNumber{width:28px;height:28px;border-radius:8px}
+ .summaryCard{padding:13px;border-radius:13px}
+ .summaryCard h2{font-size:18px}
+ .summaryRail{grid-row:auto}
+ .stepBlock .form{gap:10px}
+ .stepBlock .tableScroll th,.stepBlock .tableScroll td{padding:9px 7px;font-size:11px}
+ .ticket{margin-top:8px;padding-top:8px}
+}
