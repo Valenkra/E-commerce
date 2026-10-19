@@ -24,7 +24,7 @@ export default function LoginForm() {
       });
       const body = await response.json();
       if (!response.ok) throw new Error(body.error || 'Error de acceso');
-      router.replace('/admin/productos');
+      router.replace('/admin/dashboard');
       router.refresh();
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : 'Error desconocido');

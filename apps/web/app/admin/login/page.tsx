@@ -4,7 +4,7 @@ import LoginForm from './LoginForm';
 import styles from './login.module.css';
 
 export default async function LoginPage() {
-  if (await isAdmin()) redirect('/admin/productos');
+  if (await isAdmin()) redirect('/admin/dashboard');
 
   return (
     <main className={styles.page}>
