@@ -61,3 +61,14 @@
 .emptyState { text-align: center; color: #8492a5 !important; padding: 30px !important; }
 @media (max-width: 1100px) { .formGrid { grid-template-columns: repeat(2, minmax(0,1fr)); } .variantGrid { grid-template-columns: repeat(2, minmax(0,1fr)); } }
 @media (max-width: 650px) { .products { padding: 18px 4px 28px; } .panel { padding: 15px; } .formGrid, .variantGrid { grid-template-columns: 1fr; } .searchInput { max-width: none; } .panelHeader { align-items: stretch; } }
+
+/* Carga de imagen principal */
+.imageUploader { display:flex; align-items:center; gap:18px; padding:16px; border:1px dashed #c7d5e7; background:#f8fafd; border-radius:10px; flex-wrap:wrap; }
+.imagePreview { width:110px; height:130px; object-fit:contain; background:#fff; border:1px solid #e1e8f0; border-radius:9px; }
+.imageUploadControls { display:flex; align-items:flex-start; flex-direction:column; gap:9px; }
+.imageUploadControls small { color:#71819a; font-size:12px; }
+.uploadButton { position:relative; display:inline-flex; align-items:center; justify-content:center; border-radius:8px; background:#173b75; color:white; padding:10px 15px; font-size:13px; font-weight:600; cursor:pointer; }
+.uploadButton:hover { background:#244f91; }
+.uploadButton:focus-within { outline:2px solid #7ba7e8; outline-offset:2px; }
+.uploadButton input { position:absolute; width:1px; height:1px; opacity:0; overflow:hidden; }
+.uploadButton:has(input:disabled) { opacity:.6; cursor:not-allowed; }

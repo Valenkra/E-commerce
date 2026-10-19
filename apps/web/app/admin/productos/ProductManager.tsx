@@ -32,6 +32,7 @@ export default function ProductManager() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [busy, setBusy] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const formRef = useRef<HTMLElement>(null);
 
   async function load() {
@@ -66,9 +67,24 @@ export default function ProductManager() {
     formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
+  async function uploadImage(file: File) {
+    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) { setError('Solo JPG, PNG o WebP'); return; }
+    if (file.size > 10 * 1024 * 1024) { setError('La imagen supera los 10 MB'); return; }
+    setError(''); setSuccess(''); setUploading(true);
+    try {
+      const body = new FormData(); body.append('file', file);
+      const response = await fetch('/api/admin/images', { method: 'POST', body });
+      const result = await response.json();
+      if (!response.ok || typeof result.path !== 'string') throw new Error(typeof result.error === 'string' ? result.error : 'No se pudo subir la imagen');
+      setForm(previous => ({ ...previous, image_url: result.path }));
+      setSuccess('Imagen subida correctamente. Guardá el producto para asociarla.');
+    } catch (error) { setError(error instanceof Error ? error.message : 'Error al subir la imagen'); }
+    finally { setUploading(false); }
+  }
+
   async function submit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    if (busy) return;
+    if (busy || uploading) return;
     setError(''); setSuccess(''); setBusy(true);
     try {
       if (variants.some(v => !v.size.trim() || !v.color.trim())) throw new Error('Completá talle y color de cada variante');
@@ -138,7 +154,7 @@ export default function ProductManager() {
     <section ref={formRef} className={styles.panel}>
       <div className={styles.panelHeader}>
         <div><h2>{editingId ? `Editar producto · ${form.code}` : 'Nuevo producto'}</h2><p>Información general y configuración del producto</p></div>
-        {editingId && <button className={styles.buttonSecondary} type="button" disabled={busy} onClick={reset}>Cancelar edición</button>}
+        {editingId && <button className={styles.buttonSecondary} type="button" disabled={busy || uploading} onClick={reset}>Cancelar edición</button>}
       </div>
       <form onSubmit={submit} className={styles.form}>
         <div className={styles.formGrid}>
@@ -153,9 +169,22 @@ export default function ProductManager() {
         <label className={styles.field}><span>Descripción</span>
           <textarea className={styles.textarea} rows={3} value={form.description} onChange={e => setForm(p => ({ ...p, description: e.target.value }))} />
         </label>
-        <label className={styles.field}><span>URL de imagen <span className={styles.optional}>(opcional)</span></span>
-          <input className={styles.input} type="url" placeholder="https://..." value={form.image_url} onChange={e => setForm(p => ({ ...p, image_url: e.target.value }))} />
-        </label>
+        <div className={styles.field}>
+          <span>Imagen principal <span className={styles.optional}>(opcional)</span></span>
+          <div className={styles.imageUploader}>
+            {form.image_url && <img className={styles.imagePreview} src={form.image_url} alt="Vista previa del producto" />}
+            <div className={styles.imageUploadControls}>
+              <label className={styles.uploadButton}>
+                {uploading ? 'Subiendo imagen…' : form.image_url ? 'Cambiar imagen' : 'Seleccionar imagen'}
+                <input type="file" accept="image/jpeg,image/png,image/webp" disabled={busy || uploading}
+                  onChange={e => { const file = e.currentTarget.files?.[0]; if (file) void uploadImage(file); e.currentTarget.value = ''; }} />
+              </label>
+              <small>JPG, PNG o WebP · hasta 10 MB</small>
+              {form.image_url && <button className={styles.buttonTextDanger} type="button" disabled={busy || uploading}
+                onClick={() => setForm(previous => ({ ...previous, image_url: '' }))}>Quitar imagen</button>}
+            </div>
+          </div>
+        </div>
         <label className={styles.checkRow}>
           <input type="checkbox" checked={form.active} onChange={e => setForm(p => ({ ...p, active: e.target.checked }))} />
           <span>Producto activo <small>Visible en el catálogo de la tienda</small></span>
@@ -165,7 +194,7 @@ export default function ProductManager() {
         <p className={styles.hint}>Al quitar una variante existente durante la edición, se conserva en la base de datos con stock 0.</p>
         <div className={styles.variantList}>
           {variants.map((v, i) => <div key={i} className={styles.variantCard}>
-            <div className={styles.variantHeading}><span>Variante {i + 1}</span><button className={styles.buttonTextDanger} type="button" disabled={busy} onClick={() => setVariants(p => p.filter((_, j) => j !== i))}>Quitar variante</button></div>
+            <div className={styles.variantHeading}><span>Variante {i + 1}</span><button className={styles.buttonTextDanger} type="button" disabled={busy || uploading} onClick={() => setVariants(p => p.filter((_, j) => j !== i))}>Quitar variante</button></div>
             <div className={styles.variantGrid}>
               {(Object.keys(variantLabels) as Array<keyof Variant>).map(k => <label key={k} className={styles.field}>
                 <span>{variantLabels[k]}</span>
@@ -176,9 +205,9 @@ export default function ProductManager() {
             </div>
           </div>)}
         </div>
-        <button className={styles.buttonSecondary} type="button" disabled={busy} onClick={() => setVariants(p => [...p, emptyVariant()])}>+ Agregar variante</button>
+        <button className={styles.buttonSecondary} type="button" disabled={busy || uploading} onClick={() => setVariants(p => [...p, emptyVariant()])}>+ Agregar variante</button>
         <div className={styles.formActions}>
-          <button className={styles.buttonPrimary} disabled={busy} type="submit">
+          <button className={styles.buttonPrimary} disabled={busy || uploading} type="submit">
             {busy ? 'Guardando…' : editingId ? 'Guardar cambios' : 'Guardar producto'}
           </button>
         </div>
@@ -202,8 +231,8 @@ export default function ProductManager() {
           <td className={styles.numberCell}>{p.variants.reduce((s, v) => s + v.stock, 0)}</td>
           <td><span className={p.active ? styles.statusActive : styles.statusInactive}>{p.active ? 'Activo' : 'Inactivo'}</span></td>
           <td><div className={styles.rowActions}>
-            <button className={styles.buttonTable} type="button" disabled={busy} onClick={() => edit(p)}>Editar</button>
-            {p.active && <button className={styles.buttonTableDanger} type="button" disabled={busy} onClick={() => void removeProduct(p)}>Eliminar</button>}
+            <button className={styles.buttonTable} type="button" disabled={busy || uploading} onClick={() => edit(p)}>Editar</button>
+            {p.active && <button className={styles.buttonTableDanger} type="button" disabled={busy || uploading} onClick={() => void removeProduct(p)}>Eliminar</button>}
           </div></td>
         </tr>)}
         {shown.length === 0 && <tr><td colSpan={8} className={styles.emptyState}>No se encontraron productos.</td></tr>}
