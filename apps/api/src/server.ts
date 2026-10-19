@@ -71,6 +71,36 @@ async function start() {
     for (const row of result.rows) { if (!row.category) continue; if (!categories.has(row.category)) categories.set(row.category, new Set()); if (row.subcategory) categories.get(row.category)!.add(row.subcategory); }
     return { data: [...categories].map(([category, values]) => ({ category, subtypes: [...values] })) };
   });
+
+
+app.get('/api/admin/products', { preHandler: requireAdmin }, async () => {
+  const result = await pool.query(`
+    SELECT p.*,
+      COALESCE(
+        (
+          SELECT json_agg(
+            json_build_object(
+              'id', v.id,
+              'size', v.size,
+              'color', v.color,
+              'stock', v.stock,
+              'sku', v.sku
+            )
+            ORDER BY v.size, v.color
+          )
+          FROM product_variants v
+          WHERE v.product_id = p.id
+        ),
+        '[]'::json
+      ) AS variants
+    FROM products p
+    ORDER BY p.name
+  `);
+
+  return { data: result.rows };
+});
+
+
 app.post('/api/admin/products', { preHandler: requireAdmin }, async (req, reply) => {
   app.log.info('[PRODUCTS] POST recibido');
 
@@ -104,6 +134,193 @@ app.post('/api/admin/products', { preHandler: requireAdmin }, async (req, reply)
       app.log.error(error); return reply.code(500).send({ error: 'No se pudo crear el producto' });
     } finally { client.release(); }
   });
+
+  app.patch('/api/admin/products/:id', { preHandler: requireAdmin }, async (req, reply) => {
+    const params = z.object({
+      id: z.string().uuid()
+    }).safeParse(req.params);
+
+    if (!params.success) {
+      return reply.code(400).send({ error: 'ID de producto inválido' });
+    }
+
+    const parsed = productSchema.safeParse(req.body);
+
+    if (!parsed.success) {
+      return reply.code(400).send({
+        error: 'Datos inválidos',
+        details: parsed.error.flatten()
+      });
+    }
+
+    const p = parsed.data;
+    const client = await pool.connect();
+
+    try {
+      await client.query('BEGIN');
+
+      const updated = await client.query(
+        `UPDATE products SET
+          code = $1,
+          name = $2,
+          description = $3,
+          category = $4,
+          subcategory = $5,
+          brand = $6,
+          retail_price = $7,
+          wholesale_price = $8,
+          image_url = $9,
+          active = $10,
+          updated_at = NOW()
+        WHERE id = $11
+        RETURNING *`,
+        [
+          p.code, p.name, p.description, p.category,
+          p.subcategory ?? p.subtype ?? null,
+          p.brand ?? null, p.retail_price,
+          p.wholesale_price, p.image_url ?? null,
+          p.active, params.data.id
+        ]
+      );
+
+      if (updated.rowCount === 0) {
+        await client.query('ROLLBACK');
+        return reply.code(404).send({
+          error: 'Producto no encontrado'
+        });
+      }
+
+      // Se conservan las variantes existentes que sigan en el formulario.
+      // Las variantes nuevas se insertan.
+      const existing = await client.query(
+        `SELECT id, size, color FROM product_variants
+         WHERE product_id = $1 FOR UPDATE`,
+        [params.data.id]
+      );
+
+      const keptIds: string[] = [];
+
+      for (const variant of p.variants) {
+        const match = existing.rows.find(
+          (row) =>
+            row.size === variant.size &&
+            row.color === variant.color
+        );
+
+        if (match) {
+          await client.query(
+            `UPDATE product_variants
+             SET stock = $1, sku = $2
+             WHERE id = $3`,
+            [variant.stock, variant.sku ?? null, match.id]
+          );
+          keptIds.push(match.id);
+        } else {
+          const inserted = await client.query(
+            `INSERT INTO product_variants
+             (product_id, size, color, stock, sku)
+             VALUES ($1, $2, $3, $4, $5)
+             RETURNING id`,
+            [
+              params.data.id,
+              variant.size,
+              variant.color,
+              variant.stock,
+              variant.sku ?? null
+            ]
+          );
+          keptIds.push(inserted.rows[0].id);
+        }
+      }
+
+      // No borramos variantes automáticamente.
+      // Si una variante deja de enviarse, se conserva con stock 0.
+      for (const row of existing.rows) {
+        if (!keptIds.includes(row.id)) {
+          await client.query(
+            'UPDATE product_variants SET stock = 0 WHERE id = $1',
+            [row.id]
+          );
+        }
+      }
+
+      const variants = await client.query(
+        `SELECT * FROM product_variants
+         WHERE product_id = $1
+         ORDER BY size, color`,
+        [params.data.id]
+      );
+
+      await client.query('COMMIT');
+
+      return reply.send({
+        data: {
+          ...updated.rows[0],
+          variants: variants.rows
+        }
+      });
+    } catch (error: any) {
+      await client.query('ROLLBACK');
+
+      if (error.code === '23505') {
+        return reply.code(409).send({
+          error: 'Código, SKU o variante duplicada'
+        });
+      }
+
+      app.log.error(error);
+      return reply.code(500).send({
+        error: 'No se pudo actualizar el producto'
+      });
+    } finally {
+      client.release();
+    }
+  });
+
+  
+app.delete('/api/admin/products/:id', {
+  preHandler: requireAdmin
+}, async (req, reply) => {
+  const parsed = z.object({
+    id: z.string().uuid()
+  }).safeParse(req.params);
+
+  if (!parsed.success) {
+    return reply.code(400).send({
+      error: 'ID de producto inválido'
+    });
+  }
+
+  try {
+    const result = await pool.query(
+      `UPDATE products
+       SET active = FALSE,
+           updated_at = NOW()
+       WHERE id = $1
+       RETURNING id, code, name, active`,
+      [parsed.data.id]
+    );
+
+    if (result.rowCount === 0) {
+      return reply.code(404).send({
+        error: 'Producto no encontrado'
+      });
+    }
+
+    return reply.send({
+      message: 'Producto desactivado correctamente',
+      data: result.rows[0]
+    });
+  } catch (error) {
+    app.log.error(error);
+
+    return reply.code(500).send({
+      error: 'No se pudo eliminar el producto'
+    });
+  }
+});
+
+
   app.post('/api/admin/images', { preHandler: requireAdmin }, async (req, reply) => {
     const file = await req.file();
     if (!file) return reply.code(400).send({ error: 'Falta archivo' });
@@ -129,3 +346,4 @@ app.post('/api/admin/products', { preHandler: requireAdmin }, async (req, reply)
   await app.listen({ port: Number(process.env.PORT || 4000), host: '0.0.0.0' });
 }
 start().catch(err => { app.log.error(err); process.exit(1); });
+
