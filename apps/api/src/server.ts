@@ -10,7 +10,12 @@ import { mkdir, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
 const app = Fastify({ logger: true, bodyLimit: 12 * 1024 * 1024 });
-const pool = new Pool({ connectionString: process.env.DATABASE_URL, max: 10 });
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  max: 10,
+  connectionTimeoutMillis: 5000,
+  idleTimeoutMillis: 30000
+});
 const querySchema = z.object({
   q: z.string().max(120).optional(),
   category: z.string().max(80).optional(),
@@ -28,12 +33,14 @@ const productSchema = z.object({
   wholesale_price: z.number().nonnegative(), image_url: z.string().max(2000).nullish(),
   active: z.boolean().default(true), variants: z.array(variantSchema).default([]),
 });
-function requireAdmin(request: any, reply: any) {
+async function requireAdmin(request: any, reply: any) {
+  app.log.info('[AUTH] Verificando token administrativo');
   const secret = process.env.LOCAL_ADMIN_TOKEN;
   if (!secret || secret.length < 24) return reply.code(503).send({ error: 'Configurá LOCAL_ADMIN_TOKEN (mínimo 24 caracteres) en apps/api/.env' });
   const provided = String(request.headers.authorization || '').replace(/^Bearer\s+/i, '');
   const a = Buffer.from(secret), b = Buffer.from(provided);
   if (a.length !== b.length || !timingSafeEqual(a, b)) return reply.code(401).send({ error: 'No autorizado' });
+  app.log.info('[AUTH] Token administrativo válido');
 }
 async function start() {
   if (!process.env.DATABASE_URL) throw new Error('Falta DATABASE_URL en apps/api/.env');
@@ -64,11 +71,23 @@ async function start() {
     for (const row of result.rows) { if (!row.category) continue; if (!categories.has(row.category)) categories.set(row.category, new Set()); if (row.subcategory) categories.get(row.category)!.add(row.subcategory); }
     return { data: [...categories].map(([category, values]) => ({ category, subtypes: [...values] })) };
   });
-  app.post('/api/admin/products', { preHandler: requireAdmin }, async (req, reply) => {
-    const parsed = productSchema.safeParse(req.body);
-    if (!parsed.success) return reply.code(400).send({ error: parsed.error.flatten() });
-    const p = parsed.data;
-    const client = await pool.connect();
+app.post('/api/admin/products', { preHandler: requireAdmin }, async (req, reply) => {
+  app.log.info('[PRODUCTS] POST recibido');
+
+  const parsed = productSchema.safeParse(req.body);
+
+  if (!parsed.success) {
+    app.log.warn('[PRODUCTS] Datos inválidos');
+    return reply.code(400).send({ error: parsed.error.flatten() });
+  }
+
+  const p = parsed.data;
+
+  app.log.info('[PRODUCTS] Solicitando conexión a PostgreSQL');
+
+  const client = await pool.connect();
+
+  app.log.info('[PRODUCTS] Conexión obtenida');
     try {
       await client.query('BEGIN');
       const inserted = await client.query(`INSERT INTO products (code,name,description,category,subcategory,brand,retail_price,wholesale_price,image_url,active) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING *`, [p.code,p.name,p.description,p.category,p.subcategory ?? p.subtype ?? null,p.brand ?? null,p.retail_price,p.wholesale_price,p.image_url ?? null,p.active]);

@@ -1,0 +1,12 @@
+Copiar los archivos conservando la estructura de carpetas bajo apps/web/.
+NO reemplazar app/layout.tsx, app/catalogo/page.tsx, lib/data.ts ni el backend.
+En apps/web/.env.local agregar (además de API_BASE_URL):
+ADMIN_PANEL_PASSWORD=<contraseña larga, distinta de los tokens>
+ADMIN_SESSION_SECRET=<secreto aleatorio de al menos 32 caracteres>
+LOCAL_ADMIN_TOKEN=<exactamente el mismo valor de apps/api/.env>
+API_BASE_URL=http://127.0.0.1:4000
+No usar NEXT_PUBLIC_ para estas variables. No subir .env.local al repositorio.
+Instalar si falta: npm.cmd install server-only --workspace=apps/web
+Reiniciar API y web. Abrir http://localhost:3000/admin/login
+Esta es una autenticación LOCAL para desarrollo; antes de publicar se requiere autenticación robusta, rate limiting y roles.
+El listado utiliza el endpoint público y muestra solamente productos activos; la edición/desactivación no está implementada todavía.

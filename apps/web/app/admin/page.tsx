@@ -1,1 +1,2 @@
-import Link from 'next/link';export default function Admin(){return <main className="placeholder-page"><Link href="/catalogo">← Volver al catálogo</Link><h1>Panel del vendedor</h1><p>Esta ruta está reservada para la siguiente fase: autenticación de administrador, pedidos, inventario y bot de WhatsApp.</p><p>No se habilitan operaciones de stock hasta conectar Supabase y configurar los permisos del servidor.</p></main>}
+import {redirect} from 'next/navigation';
+export default function Admin(){redirect('/admin/productos')}
