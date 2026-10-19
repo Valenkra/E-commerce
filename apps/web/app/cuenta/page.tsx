@@ -1,0 +1,1 @@
+import Link from 'next/link';export default function Cuenta(){return <main className="placeholder-page"><Link href="/catalogo">← Volver al catálogo</Link><h1>Mi cuenta</h1><p>El registro y el inicio de sesión se habilitarán al conectar Supabase Auth. No se simulan cuentas reales.</p></main>}
