@@ -1,0 +1,31 @@
+.page{min-height:100vh;min-height:100dvh;display:grid;place-items:center;position:relative;isolation:isolate;overflow:hidden;padding:24px 16px;box-sizing:border-box;background:linear-gradient(145deg,#f2f9ff 0%,#e9f4fd 48%,#dceefb 100%);color:#183a5a;font-family:Inter,Arial,Helvetica,sans-serif}
+.glowOne,.glowTwo{position:absolute;z-index:-1;border-radius:50%;pointer-events:none;filter:blur(2px)}
+.glowOne{width:370px;height:370px;top:-190px;right:-100px;background:radial-gradient(circle,#c3e6fc 0%,transparent 70%)}
+.glowTwo{width:310px;height:310px;bottom:-170px;left:-120px;background:radial-gradient(circle,#a8d9f7 0%,transparent 70%)}
+.card{width:100%;max-width:408px;box-sizing:border-box;background:rgba(255,255,255,.96);border:1px solid #dceaf5;border-radius:24px;padding:34px 34px 26px;box-shadow:0 24px 75px rgba(34,89,135,.10),0 4px 18px rgba(34,89,135,.04);text-align:center}
+.brandMark{display:grid;place-items:center;width:86px;height:86px;margin:0 auto 16px;border-radius:24px;background:linear-gradient(145deg,#e5f5ff,#d5ecfd)}
+.bag{width:76px;height:76px;animation:float 5s ease-in-out infinite}
+.kicker{font-size:10px;font-weight:800;letter-spacing:.19em;color:#4386b5}
+.heading h1{font-size:clamp(23px,4vw,28px);line-height:1.15;letter-spacing:-.035em;margin:10px 0 8px;color:#153b61;font-weight:750}
+.heading p{font-size:13px;line-height:1.5;color:#7389a0;margin:0}
+.form{display:grid;gap:11px;text-align:left;margin-top:29px}
+.label{font-size:12px;font-weight:700;color:#355675}
+.inputWrap{display:flex;align-items:center;min-width:0;height:49px;border:1px solid #cbddec;border-radius:12px;background:#fbfdff;transition:border-color .2s,box-shadow .2s}
+.inputWrap:focus-within{border-color:#458dc1;box-shadow:0 0 0 3px rgba(69,141,193,.13)}
+.lockIcon{width:19px;height:19px;margin-left:14px;flex-shrink:0;color:#7b9ab4}
+.input{min-width:0;flex:1;height:100%;padding:0 10px;border:0;outline:0;background:transparent;font:inherit;font-size:14px;color:#193c5b}
+.input::placeholder{color:#9bacc0}
+.toggle{display:grid;place-items:center;width:43px;height:43px;margin-right:3px;border:0;background:transparent;color:#6b8ba7;cursor:pointer;border-radius:10px}
+.toggle svg{width:19px;height:19px}
+.toggle:hover{background:#eaf4fc;color:#235f8e}
+.toggle:focus-visible,.submit:focus-visible{outline:3px solid #7bb9e4;outline-offset:2px}
+.submit{display:flex;align-items:center;justify-content:center;gap:9px;width:100%;min-height:49px;margin-top:9px;border:0;border-radius:12px;background:#173b75;color:#fff;font:inherit;font-size:14px;font-weight:700;cursor:pointer;transition:background .2s,transform .2s}
+.submit:hover:not(:disabled){background:#25568e;transform:translateY(-1px)}
+.submit:disabled{opacity:.65;cursor:not-allowed}
+.submit span{font-size:19px;line-height:1}
+.error{margin:0;padding:10px 12px;border:1px solid #f1c8ca;border-radius:9px;background:#fff4f4;color:#a02f38;font-size:12px;line-height:1.4}
+.footer{font-size:11px;color:#91a2b2;margin:25px 0 0}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}
+@media(max-width:480px){.page{padding:16px 12px}.card{max-width:370px;border-radius:20px;padding:27px 23px 22px}.brandMark{width:72px;height:72px;border-radius:20px;margin-bottom:12px}.bag{width:66px;height:66px}.heading h1{font-size:23px}.form{margin-top:23px}.footer{margin-top:20px}}
+@media(max-height:650px){.page{padding-top:10px;padding-bottom:10px}.card{padding-top:17px;padding-bottom:16px}.brandMark{width:60px;height:60px;margin-bottom:8px}.bag{width:56px;height:56px}.heading h1{margin:5px 0;font-size:22px}.form{margin-top:16px;gap:8px}.footer{margin-top:14px}}
+@media(prefers-reduced-motion:reduce){.bag{animation:none}.submit{transition:none}}
