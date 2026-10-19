@@ -1,6 +1,6 @@
-import { registerOrdersRoutes } from './orders-routes';
-import { registerCustomersRoutes } from './customers-routes';
-import { registerSettingsRoutes } from './settings-routes';
+import { registerOrdersRoutes } from './orders-routes.js';
+import { registerCustomersRoutes } from './customers-routes.js';
+import { registerSettingsRoutes } from './settings-routes.js';
 import 'dotenv/config';
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
