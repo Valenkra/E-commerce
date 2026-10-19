@@ -3,6 +3,12 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import styles from './products.module.css';
 
+type ImportProduct = {
+  code: string; name: string; description: string; category: string;
+  retail_price: number; wholesale_price: number; image_url: string | null;
+  active: boolean; variants: Array<{size:string;color:string;stock:number;sku:string|null}>;
+};
+type ImportResult = { created: number; skipped: number; failed: string[] };
 type Variant = { size: string; color: string; stock: number; sku: string | null };
 type Product = {
   id: string; code: string; name: string; description: string | null;
@@ -34,6 +40,10 @@ export default function ProductManager() {
   const [busy, setBusy] = useState(false);
   const [uploading, setUploading] = useState(false);
   const formRef = useRef<HTMLElement>(null);
+  const [importPreview, setImportPreview] = useState<ImportProduct[] | null>(null);
+  const [importProgress, setImportProgress] = useState('');
+  const [importResult, setImportResult] = useState<ImportResult | null>(null);
+  const importInputRef = useRef<HTMLInputElement>(null);
 
   async function load() {
     try {
@@ -143,14 +153,135 @@ export default function ProductManager() {
     }
   }
 
+
+  async function previewExcel(file: File) {
+    setError(''); setSuccess(''); setImportPreview(null); setImportResult(null);
+    try {
+      if (!file.name.toLowerCase().endsWith('.xlsx')) throw new Error('Seleccioná un archivo .xlsx');
+      if (file.size > 5 * 1024 * 1024) throw new Error('El Excel supera los 5 MB');
+      const XLSX = await import('xlsx');
+      const book = XLSX.read(await file.arrayBuffer(), {type:'array', cellDates:false});
+      const productSheet = book.Sheets['Productos'];
+      const variantSheet = book.Sheets['Variantes y stock'];
+      if (!productSheet || !variantSheet) throw new Error('El archivo debe contener las hojas «Productos» y «Variantes y stock».');
+      const productRows = XLSX.utils.sheet_to_json<Record<string, unknown>>(productSheet, {defval:''});
+      const variantRows = XLSX.utils.sheet_to_json<Record<string, unknown>>(variantSheet, {defval:''});
+      if (!productRows.length || productRows.length > 500) throw new Error('Se admiten entre 1 y 500 productos.');
+      const str = (v:unknown) => String(v ?? '').trim();
+      const number = (v:unknown) => Number(v);
+      const grouped = new Map<string, ImportProduct>();
+      for (const [index,row] of productRows.entries()) {
+        const code=str(row['Código']);
+        const name=str(row['Producto']);
+        const category=str(row['Categoría']);
+        const price=number(row['Precio (ARS)']);
+        if (!code || !name || !category || !Number.isFinite(price) || price < 0) throw new Error(`Producto en fila ${index+2}: código, nombre, categoría o precio inválidos.`);
+        if (grouped.has(code.toLowerCase())) throw new Error(`Código duplicado en el Excel: ${code}`);
+        const activeText=str(row['Activo']).toLowerCase();
+        if (activeText && !['true','false','verdadero','falso','1','0','sí','si','no'].includes(activeText)) throw new Error(`Estado activo inválido en ${code}`);
+        grouped.set(code.toLowerCase(),{
+          code,name,category,description:str(row['Descripción']),
+          retail_price:price,wholesale_price:price,
+          image_url:str(row['URL imagen']) || null,
+          active:!['false','falso','0','no'].includes(activeText),
+          variants:[]
+        });
+      }
+      const allSkus=new Set<string>();
+      const variantKeys=new Map<string,Set<string>>();
+      for (const [index,row] of variantRows.entries()) {
+        const code=str(row['Código producto']);
+        const product=grouped.get(code.toLowerCase());
+        if (!product) throw new Error(`Variante en fila ${index+2}: el producto ${code} no existe en la hoja Productos.`);
+        const size=str(row['Talle']),color=str(row['Color']),sku=str(row['SKU variante']);
+        const stock=number(row['Stock']);
+        if (!size || !color || !Number.isSafeInteger(stock) || stock<0) throw new Error(`Variante en fila ${index+2}: talle, color o stock inválidos.`);
+        const key=`${size.toLowerCase()}|${color.toLowerCase()}`;
+        const keys=variantKeys.get(code.toLowerCase()) ?? new Set<string>();
+        if (keys.has(key)) throw new Error(`Variante repetida en ${code}: ${color}/${size}`);
+        keys.add(key); variantKeys.set(code.toLowerCase(),keys);
+        if (sku && allSkus.has(sku.toLowerCase())) throw new Error(`SKU repetido: ${sku}`);
+        if (sku) allSkus.add(sku.toLowerCase());
+        product.variants.push({size,color,stock,sku:sku||null});
+      }
+      if ([...grouped.values()].some(p=>p.variants.length===0)) throw new Error('Todos los productos deben tener al menos una variante.');
+      setImportPreview([...grouped.values()]);
+} catch (e) {
+  console.error('[VALENKA] Error al leer Excel:', e);
+  setError(
+    e instanceof Error
+      ? `${e.name}: ${e.message}`
+      : `Error al leer Excel: ${String(e)}`
+  );
+}  }
+
+  async function importExcel() {
+    if (!importPreview || busy) return;
+    setBusy(true); setError(''); setImportResult(null);
+    const result:ImportResult={created:0,skipped:0,failed:[]};
+    try {
+      // Consultar nuevamente para evitar duplicados, incluso si la vista previa quedó abierta.
+      const response=await fetch('/api/admin/products',{cache:'no-store'});
+      const body=await response.json();
+      if (!response.ok) throw new Error(typeof body.error==='string'?body.error:'No se pudo verificar el catálogo');
+      const existing=new Set<string>((body.data||[]).map((p:Product)=>p.code.toLowerCase()));
+      for (const [index,p] of importPreview.entries()) {
+        setImportProgress(`${index+1} de ${importPreview.length}: ${p.name}`);
+        if (existing.has(p.code.toLowerCase())) {result.skipped++;continue;}
+        try {
+          const r=await fetch('/api/admin/products',{
+            method:'POST',headers:{'Content-Type':'application/json'},
+            body:JSON.stringify({...p,subcategory:'',brand:'Valenka'})
+          });
+          const b=await r.json().catch(()=>({}));
+          if (!r.ok) {
+            if (r.status===409) {result.skipped++;continue;}
+            throw new Error(typeof b.error==='string'?b.error:`Error HTTP ${r.status}`);
+          }
+          result.created++; existing.add(p.code.toLowerCase());
+        } catch (e) {result.failed.push(`${p.code}: ${e instanceof Error?e.message:'Error desconocido'}`);}
+      }
+      setImportResult(result);
+      setImportPreview(null);
+      await load();
+      setSuccess(`Importación finalizada: ${result.created} creados, ${result.skipped} omitidos, ${result.failed.length} errores.`);
+    } catch(e) {setError(e instanceof Error?e.message:'No se pudo iniciar la importación');}
+    finally {setBusy(false);setImportProgress('');}
+  }
+
   const shown = products.filter(p => `${p.name} ${p.code}`.toLowerCase().includes(q.toLowerCase()));
 
   return <main className={styles.products}>
     <header className={styles.pageHeader}>
       <div><h1>Productos</h1><p>Administrá el catálogo, los precios y la disponibilidad.</p></div>
-      <span className={styles.headerCount}>{products.length} productos registrados</span>
+      <div className={styles.importHeaderActions}>
+        <span className={styles.headerCount}>{products.length} productos registrados</span>
+        <input ref={importInputRef} type="file" accept=".xlsx" className={styles.importFileInput}
+          aria-label="Seleccionar Excel de productos" disabled={busy}
+          onChange={e=>{const f=e.currentTarget.files?.[0];e.currentTarget.value='';if(f)void previewExcel(f);}}/>
+        <button className={styles.buttonSecondary} type="button" disabled={busy}
+          onClick={()=>importInputRef.current?.click()}>Importar productos desde Excel</button>
+      </div>
     </header>
 
+    {importPreview && <section className={styles.panel} aria-label="Vista previa de importación">
+      <div className={styles.panelHeader}><div><h2>Vista previa del Excel</h2>
+        <p>{importPreview.length} productos · {importPreview.reduce((n,p)=>n+p.variants.length,0)} variantes.
+        Los códigos existentes se omitirán. El precio mayorista será igual al minorista hasta que lo edites.</p></div></div>
+      <div className={styles.importPreviewList}>{importPreview.slice(0,8).map(p=>
+        <p key={p.code}><strong>{p.code}</strong> · {p.name} · {p.variants.length} variantes</p>)}
+        {importPreview.length>8 && <p>Y {importPreview.length-8} productos más…</p>}</div>
+      <div className={styles.importButtons}>
+        <button className={styles.buttonPrimary} type="button" disabled={busy} onClick={()=>void importExcel()}>
+          {busy ? `Importando… ${importProgress}` : 'Confirmar importación'}</button>
+        <button className={styles.buttonSecondary} type="button" disabled={busy} onClick={()=>setImportPreview(null)}>Cancelar</button>
+      </div>
+      <p className={styles.hint}>La creación se realiza producto por producto. Si se interrumpe, podés importar de nuevo: se omiten los códigos ya creados.</p>
+    </section>}
+    {importResult && importResult.failed.length>0 && <section className={styles.panel}>
+      <h2>Errores de importación</h2>
+      {importResult.failed.map((e,i)=><p key={i} className={styles.alertError}>{e}</p>)}
+    </section>}
     <section ref={formRef} className={styles.panel}>
       <div className={styles.panelHeader}>
         <div><h2>{editingId ? `Editar producto · ${form.code}` : 'Nuevo producto'}</h2><p>Información general y configuración del producto</p></div>
