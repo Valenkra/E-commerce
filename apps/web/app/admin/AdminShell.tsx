@@ -43,7 +43,7 @@ export default function AdminShell({ children }: { children: ReactNode }) {
   }
   return <div className={styles.shell}>
     <aside className={styles.sidebar} aria-label="Menú de administración">
-      <Link href="/admin/dashboard" className={styles.brand}><span className={styles.brandIcon}><Icon name="store" /></span><span><strong>Mi tienda</strong><small>ADMINISTRACIÓN</small></span></Link>
+      <Link href="/admin/dashboard" className={styles.brand}><span className={styles.brandIcon}><Icon name="store" /></span><span><strong>ValenShop</strong><small>ADMINISTRACIÓN</small></span></Link>
       <div className={styles.sectionTitle}>GESTIÓN</div>
       <nav className={styles.navigation} aria-label="Secciones">
         {sections.map(section => {
